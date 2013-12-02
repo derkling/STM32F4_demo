@@ -18,26 +18,26 @@ static volatile struct uart_stats {
 } uart_stats;
 
 
-void USART1_IRQHandler(void)
+void USART2_IRQHandler(void)
 {
-    if (USART1->SR & USART_SR_RXNE) {
-        if (!rb_putc(&rx_buf, USART1->DR))
+    if (USART2->SR & USART_SR_RXNE) {
+        if (!rb_putc(&rx_buf, USART2->DR))
             uart_stats.rx_overrun++;
         else
             uart_stats.rx_bytes++;
     }
 
-    if (USART1->SR & USART_SR_TXE) {
+    if (USART2->SR & USART_SR_TXE) {
         char c;
         if (rb_getc(&tx_buf, &c)) {
             // send a queued byte
             //
-            USART1->DR = c;
+            USART2->DR = c;
         }
         else {
             // nothing to send, disable interrupt
             //
-            USART1->CR1 &= ~USART_CR1_TXEIE;
+            USART2->CR1 &= ~USART_CR1_TXEIE;
         }
         uart_stats.tx_bytes++;
     }
@@ -59,7 +59,7 @@ ssize_t uart_write_r(struct _reent *r, int fd, const void *ptr, size_t len)
         c++;
 
         // Enable TX empty interrupt
-        USART1->CR1 |= USART_CR1_TXEIE;
+        USART2->CR1 |= USART_CR1_TXEIE;
     }
 
     return len;
@@ -83,8 +83,8 @@ ssize_t uart_read_r(struct _reent *r, int fd, void *ptr, size_t len)
 void uart_poll_send(const char *ch)
 {
     while (*ch) {
-        USART1->DR = *ch++ & 0xff;
-        while (!(USART1->SR & USART_FLAG_TXE));
+        USART2->DR = *ch++ & 0xff;
+        while (!(USART2->SR & USART_FLAG_TXE));
         uart_stats.tx_bytes++;
     }
 }
@@ -102,28 +102,28 @@ void uart_init(int baudrate)
 {
     // Enable peripheral clocks
     //
-    RCC->AHB1ENR |= RCC_AHB1Periph_GPIOB;
-    RCC->APB2ENR |= RCC_APB2Periph_USART1;
+    RCC->AHB1ENR |= RCC_AHB1Periph_GPIOA;
+    RCC->APB1ENR |= RCC_APB1Periph_USART2;
 
     // Initialize Serial Port
     //
-    GPIO_Init(GPIOB, &(GPIO_InitTypeDef) {
-        .GPIO_Pin   = GPIO_Pin_6,
+    GPIO_Init(GPIOA, &(GPIO_InitTypeDef) {
+        .GPIO_Pin   = GPIO_Pin_2,
         .GPIO_Speed = GPIO_Speed_50MHz,
         .GPIO_Mode  = GPIO_Mode_AF,
         .GPIO_OType = GPIO_OType_PP
     });
 
-    GPIO_Init(GPIOB, &(GPIO_InitTypeDef) {
-        .GPIO_Pin = GPIO_Pin_7,
+    GPIO_Init(GPIOA, &(GPIO_InitTypeDef) {
+        .GPIO_Pin = GPIO_Pin_3,
         .GPIO_Mode = GPIO_Mode_AF,
         .GPIO_PuPd = GPIO_PuPd_UP
     });
 
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_USART2);
 
-    USART_Init(USART1, &(USART_InitTypeDef) {
+    USART_Init(USART2, &(USART_InitTypeDef) {
         .USART_BaudRate = baudrate,
         .USART_WordLength = USART_WordLength_8b,
         .USART_StopBits = USART_StopBits_1,
@@ -133,14 +133,14 @@ void uart_init(int baudrate)
     });
 
     NVIC_Init(&(NVIC_InitTypeDef) {
-        .NVIC_IRQChannel = USART1_IRQn,
+        .NVIC_IRQChannel = USART2_IRQn,
         .NVIC_IRQChannelPreemptionPriority = configLIBRARY_KERNEL_INTERRUPT_PRIORITY,
         .NVIC_IRQChannelSubPriority = 0,
         .NVIC_IRQChannelCmd = ENABLE
     });
 
-    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-    USART_Cmd(USART1, ENABLE);
+    USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
+    USART_Cmd(USART2, ENABLE);
 }
 
 /*
