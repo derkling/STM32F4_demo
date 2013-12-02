@@ -160,8 +160,9 @@ LDFLAGS  += $(CPU)
 # Default target.
 all:  gccversion build showsize
 
-build: elf hex lss sym
+build: bin elf hex lss sym
 
+bin: $(TARGET).bin
 elf: $(TARGET).elf
 hex: $(TARGET).hex
 lss: $(TARGET).lss
@@ -219,6 +220,12 @@ $(TARGET).elf: $(OBJECTS)
 	@echo Linking: $@
 	$(CC) $^ $(LDFLAGS) --output $@ 
 
+
+# Create final output files (.bin) from ELF output file.
+%.bin: %.elf
+	@echo
+	@echo Creating bin file: $@
+	$(OBJCOPY) -v -O binary $< $@
 
 # Create final output files (.hex, .eep) from ELF output file.
 %.hex: %.elf
