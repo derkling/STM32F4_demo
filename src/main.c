@@ -27,7 +27,7 @@ static void fpu_task(void *pvParameters)
     struct task_param *p = pvParameters;
 
     for(;;) {
-        printf("%s: x = %f\n", p->name, x);
+        printf("%s: x = %f\r\n", p->name, x);
         x += 1;
         vTaskDelay(p->interval);
     }
@@ -45,12 +45,12 @@ static void init_task(void *pvParameters)
     });
 
     uart_init(115200);
-    printf(ANSI_FG_LTRED "STM32F407" ANSI_NORMAL " FreeRTOS Test\n" );
+    printf(ANSI_FG_LTRED "STM32F407" ANSI_NORMAL " FreeRTOS Test\r\n" );
 
     vTaskDelay(100);
 
     for (int i=0; i<5; i++) {
-        printf("Starting FPU task %d..\n", i);
+        printf("Starting FPU task %d..\r\n", i);
 
         struct task_param *p;
 
